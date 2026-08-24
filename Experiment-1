@@ -1,0 +1,1 @@
+To design an Entity-Relationship (ER) diagram for an Indian e-commerce platform containing the entities Customer, Product, Order, OrderItem, Seller, Category, Payment, Delivery and Address, and to represent primary keys, composite attributes, multi-valued attributes, weak entities, specialization of Product and participation constraints.

@@ -1,0 +1,541 @@
+-- =====================================================
+-- EXPERIMENT 2
+-- CONVERSION OF ER DIAGRAM INTO RELATIONAL SCHEMA
+-- =====================================================
+
+CREATE DATABASE ECommerceDB;
+
+USE ECommerceDB;
+
+
+-- =====================================================
+-- 1. ADDRESS TABLE
+-- =====================================================
+
+CREATE TABLE Address (
+    AddressID INT PRIMARY KEY,
+    HouseNo VARCHAR(20) NOT NULL,
+    Street VARCHAR(100) NOT NULL,
+    City VARCHAR(50) NOT NULL,
+    State VARCHAR(50) NOT NULL,
+    Pincode VARCHAR(10) NOT NULL
+);
+
+
+-- =====================================================
+-- 2. CUSTOMER TABLE
+-- =====================================================
+
+CREATE TABLE Customer (
+    CustomerID INT PRIMARY KEY,
+    CustomerName VARCHAR(100) NOT NULL,
+    Email VARCHAR(100) NOT NULL UNIQUE,
+    AddressID INT,
+
+    FOREIGN KEY (AddressID)
+        REFERENCES Address(AddressID)
+        ON DELETE SET NULL
+);
+
+
+-- =====================================================
+-- 3. CUSTOMER PHONE TABLE
+-- Multi-valued attribute of Customer
+-- =====================================================
+
+CREATE TABLE CustomerPhone (
+    CustomerID INT,
+    PhoneNo VARCHAR(15) NOT NULL,
+
+    PRIMARY KEY (CustomerID, PhoneNo),
+
+    FOREIGN KEY (CustomerID)
+        REFERENCES Customer(CustomerID)
+        ON DELETE CASCADE
+);
+
+
+-- =====================================================
+-- 4. CATEGORY TABLE
+-- =====================================================
+
+CREATE TABLE Category (
+    CategoryID INT PRIMARY KEY,
+    CategoryName VARCHAR(50) NOT NULL UNIQUE
+);
+
+
+-- =====================================================
+-- 5. PRODUCT TABLE
+-- =====================================================
+
+CREATE TABLE Product (
+    ProductID INT PRIMARY KEY,
+    ProductName VARCHAR(100) NOT NULL,
+    Price DECIMAL(10,2) NOT NULL,
+    StockQuantity INT NOT NULL,
+    Description VARCHAR(255),
+    CategoryID INT NOT NULL,
+
+    FOREIGN KEY (CategoryID)
+        REFERENCES Category(CategoryID)
+        ON DELETE CASCADE,
+
+    CHECK (Price >= 0),
+    CHECK (StockQuantity >= 0)
+);
+
+
+-- =====================================================
+-- 6. PHYSICAL PRODUCT
+-- Specialization of Product
+-- =====================================================
+
+CREATE TABLE PhysicalProduct (
+    ProductID INT PRIMARY KEY,
+    Weight DECIMAL(8,2),
+    WarrantyMonths INT,
+
+    FOREIGN KEY (ProductID)
+        REFERENCES Product(ProductID)
+        ON DELETE CASCADE
+);
+
+
+-- =====================================================
+-- 7. DIGITAL PRODUCT
+-- Specialization of Product
+-- =====================================================
+
+CREATE TABLE DigitalProduct (
+    ProductID INT PRIMARY KEY,
+    FileSizeMB DECIMAL(10,2),
+    DownloadURL VARCHAR(255),
+
+    FOREIGN KEY (ProductID)
+        REFERENCES Product(ProductID)
+        ON DELETE CASCADE
+);
+
+
+-- =====================================================
+-- 8. SELLER TABLE
+-- =====================================================
+
+CREATE TABLE Seller (
+    SellerID INT PRIMARY KEY,
+    SellerName VARCHAR(100) NOT NULL,
+    Email VARCHAR(100) NOT NULL UNIQUE,
+    PhoneNo VARCHAR(15),
+    GSTIN VARCHAR(20) UNIQUE
+);
+
+
+-- =====================================================
+-- 9. SELLER_PRODUCT TABLE
+-- M:N relationship between Seller and Product
+-- =====================================================
+
+CREATE TABLE SellerProduct (
+    SellerID INT,
+    ProductID INT,
+    SellingPrice DECIMAL(10,2) NOT NULL,
+
+    PRIMARY KEY (SellerID, ProductID),
+
+    FOREIGN KEY (SellerID)
+        REFERENCES Seller(SellerID)
+        ON DELETE CASCADE,
+
+    FOREIGN KEY (ProductID)
+        REFERENCES Product(ProductID)
+        ON DELETE CASCADE,
+
+    CHECK (SellingPrice >= 0)
+);
+
+
+-- =====================================================
+-- 10. ORDER TABLE
+-- ORDER is a reserved word, so Orders is used
+-- =====================================================
+
+CREATE TABLE Orders (
+    OrderID INT PRIMARY KEY,
+    OrderDate DATE NOT NULL,
+    OrderStatus VARCHAR(30) NOT NULL,
+    TotalAmount DECIMAL(10,2) NOT NULL,
+    CustomerID INT NOT NULL,
+
+    FOREIGN KEY (CustomerID)
+        REFERENCES Customer(CustomerID)
+        ON DELETE CASCADE,
+
+    CHECK (TotalAmount >= 0)
+);
+
+
+-- =====================================================
+-- 11. ORDER ITEM TABLE
+-- Weak Entity
+-- Composite Primary Key
+-- =====================================================
+
+CREATE TABLE OrderItem (
+    OrderID INT,
+    ProductID INT,
+    Quantity INT NOT NULL,
+    UnitPrice DECIMAL(10,2) NOT NULL,
+
+    PRIMARY KEY (OrderID, ProductID),
+
+    FOREIGN KEY (OrderID)
+        REFERENCES Orders(OrderID)
+        ON DELETE CASCADE,
+
+    FOREIGN KEY (ProductID)
+        REFERENCES Product(ProductID)
+        ON DELETE CASCADE,
+
+    CHECK (Quantity > 0),
+    CHECK (UnitPrice >= 0)
+);
+
+
+-- =====================================================
+-- 12. PAYMENT TABLE
+-- =====================================================
+
+CREATE TABLE Payment (
+    PaymentID INT PRIMARY KEY,
+    PaymentDate DATE NOT NULL,
+    Amount DECIMAL(10,2) NOT NULL,
+    PaymentMethod VARCHAR(30) NOT NULL,
+    PaymentStatus VARCHAR(30) NOT NULL,
+    OrderID INT NOT NULL UNIQUE,
+
+    FOREIGN KEY (OrderID)
+        REFERENCES Orders(OrderID)
+        ON DELETE CASCADE,
+
+    CHECK (Amount >= 0)
+);
+
+
+-- =====================================================
+-- 13. DELIVERY TABLE
+-- =====================================================
+
+CREATE TABLE Delivery (
+    DeliveryID INT PRIMARY KEY,
+    DeliveryDate DATE,
+    DeliveryStatus VARCHAR(30) NOT NULL,
+    TrackingNumber VARCHAR(50) UNIQUE,
+    OrderID INT NOT NULL UNIQUE,
+
+    FOREIGN KEY (OrderID)
+        REFERENCES Orders(OrderID)
+        ON DELETE CASCADE
+);
+
+
+-- =====================================================
+-- INSERT SAMPLE DATA
+-- =====================================================
+
+
+-- ADDRESS
+
+INSERT INTO Address
+VALUES
+(101, '12A', 'Hazratganj', 'Lucknow',
+ 'Uttar Pradesh', '226001'),
+
+(102, '45', 'Gomti Nagar', 'Lucknow',
+ 'Uttar Pradesh', '226010'),
+
+(103, '21', 'Indira Nagar', 'Lucknow',
+ 'Uttar Pradesh', '226016');
+
+
+-- CUSTOMER
+
+INSERT INTO Customer
+VALUES
+(1, 'Arpita Srivastava', 'arpita@gmail.com', 101),
+
+(2, 'Rahul Sharma', 'rahul@gmail.com', 102),
+
+(3, 'Neha Singh', 'neha@gmail.com', 103);
+
+
+-- CUSTOMER PHONE
+
+INSERT INTO CustomerPhone
+VALUES
+(1, '9876543210'),
+(1, '9123456780'),
+(2, '9988776655'),
+(3, '9090909090');
+
+
+-- CATEGORY
+
+INSERT INTO Category
+VALUES
+(1, 'Electronics'),
+(2, 'Books'),
+(3, 'Clothing'),
+(4, 'Grocery');
+
+
+-- PRODUCT
+
+INSERT INTO Product
+VALUES
+(101, 'Laptop', 55000.00, 20,
+ 'Student Laptop', 1),
+
+(102, 'DBMS Book', 750.00, 50,
+ 'Database Management Book', 2),
+
+(103, 'T-Shirt', 599.00, 100,
+ 'Cotton T-Shirt', 3),
+
+(104, 'Programming Course', 1999.00, 500,
+ 'Online Programming Course', 1);
+
+
+-- PHYSICAL PRODUCT
+
+INSERT INTO PhysicalProduct
+VALUES
+(101, 1.80, 24),
+
+(102, 0.80, 0),
+
+(103, 0.30, 6);
+
+
+-- DIGITAL PRODUCT
+
+INSERT INTO DigitalProduct
+VALUES
+(104, 850.50,
+ 'https://example.com/course');
+
+
+-- SELLER
+
+INSERT INTO Seller
+VALUES
+(201, 'TechWorld India',
+ 'techworld@gmail.com',
+ '9876500001',
+ '09ABCDE1234F1Z5'),
+
+(202, 'BookStore India',
+ 'bookstore@gmail.com',
+ '9876500002',
+ '09ABCDE5678F1Z6'),
+
+(203, 'Fashion Hub',
+ 'fashion@gmail.com',
+ '9876500003',
+ '09ABCDE9012F1Z7');
+
+
+-- SELLER PRODUCT
+
+INSERT INTO SellerProduct
+VALUES
+(201, 101, 54000.00),
+
+(202, 102, 700.00),
+
+(203, 103, 550.00),
+
+(201, 104, 1800.00);
+
+
+-- ORDERS
+
+INSERT INTO Orders
+VALUES
+(5001, '2026-08-10',
+ 'Delivered', 54700.00, 1),
+
+(5002, '2026-08-11',
+ 'Shipped', 750.00, 2),
+
+(5003, '2026-08-12',
+ 'Processing', 599.00, 3);
+
+
+-- ORDER ITEMS
+
+INSERT INTO OrderItem
+VALUES
+(5001, 101, 1, 54000.00),
+
+(5001, 103, 1, 700.00),
+
+(5002, 102, 1, 750.00),
+
+(5003, 103, 1, 599.00);
+
+
+-- PAYMENT
+
+INSERT INTO Payment
+VALUES
+(9001, '2026-08-10',
+ 54700.00, 'UPI', 'Paid', 5001),
+
+(9002, '2026-08-11',
+ 750.00, 'Card', 'Paid', 5002),
+
+(9003, '2026-08-12',
+ 599.00, 'UPI', 'Pending', 5003);
+
+
+-- DELIVERY
+
+INSERT INTO Delivery
+VALUES
+(7001, '2026-08-13',
+ 'Delivered', 'TRK10001', 5001),
+
+(7002, '2026-08-14',
+ 'Shipped', 'TRK10002', 5002),
+
+(7003, NULL,
+ 'Processing', 'TRK10003', 5003);
+
+
+-- =====================================================
+-- VERIFICATION QUERIES
+-- =====================================================
+
+SELECT * FROM Customer;
+
+SELECT * FROM CustomerPhone;
+
+SELECT * FROM Address;
+
+SELECT * FROM Category;
+
+SELECT * FROM Product;
+
+SELECT * FROM PhysicalProduct;
+
+SELECT * FROM DigitalProduct;
+
+SELECT * FROM Seller;
+
+SELECT * FROM SellerProduct;
+
+SELECT * FROM Orders;
+
+SELECT * FROM OrderItem;
+
+SELECT * FROM Payment;
+
+SELECT * FROM Delivery;
+
+
+-- =====================================================
+-- JOIN QUERY
+-- =====================================================
+
+SELECT
+    o.OrderID,
+    c.CustomerName,
+    p.ProductName,
+    oi.Quantity,
+    oi.UnitPrice
+FROM Orders o
+JOIN Customer c
+    ON o.CustomerID = c.CustomerID
+JOIN OrderItem oi
+    ON o.OrderID = oi.OrderID
+JOIN Product p
+    ON oi.ProductID = p.ProductID;
+
+
+-- =====================================================
+-- REFERENTIAL INTEGRITY VIOLATION
+-- =====================================================
+
+-- This will fail because CustomerID 999 does not exist.
+
+INSERT INTO Orders
+VALUES
+(5004, '2026-08-15',
+ 'Processing', 1000.00, 999);
+
+
+-- This will fail because OrderID 9999 does not exist.
+
+INSERT INTO OrderItem
+VALUES
+(9999, 101, 1, 55000.00);
+
+
+-- =====================================================
+-- UNIQUE CONSTRAINT VIOLATION
+-- =====================================================
+
+-- Email already exists.
+
+INSERT INTO Customer
+VALUES
+(4, 'Amit Kumar', 'arpita@gmail.com', 101);
+
+
+-- =====================================================
+-- NOT NULL CONSTRAINT VIOLATION
+-- =====================================================
+
+INSERT INTO Customer
+VALUES
+(5, NULL, 'amit@gmail.com', 101);
+
+
+-- =====================================================
+-- DELETE CASCADE DEMONSTRATION
+-- =====================================================
+
+DELETE FROM Customer
+WHERE CustomerID = 1;
+
+
+-- =====================================================
+-- DELETE SET NULL DEMONSTRATION
+-- =====================================================
+
+DELETE FROM Address
+WHERE AddressID = 102;
+SELECT
+    o.OrderID,
+    c.CustomerName,
+    p.ProductName,
+    cat.CategoryName,
+    oi.Quantity,
+    oi.UnitPrice,
+    o.OrderStatus,
+    pay.PaymentMethod,
+    d.DeliveryStatus
+FROM Orders o
+JOIN Customer c
+    ON o.CustomerID = c.CustomerID
+JOIN OrderItem oi
+    ON o.OrderID = oi.OrderID
+JOIN Product p
+    ON oi.ProductID = p.ProductID
+JOIN Category cat
+    ON p.CategoryID = cat.CategoryID
+JOIN Payment pay
+    ON o.OrderID = pay.OrderID
+JOIN Delivery d
+    ON o.OrderID = d.OrderID;
